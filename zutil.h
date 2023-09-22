@@ -53,6 +53,12 @@ typedef unsigned long  ulg;
 #  endif
 #endif
 
+/* UNITY SPECIFIC: since this is an extern symbol it should also be prefixed */
+#if UNITY_Z_PREFIX
+    #define z_errmsg unity_z_errmsg
+#endif
+/* END UNITY SPECIFIC */
+
 extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 /* (size given to avoid silly warnings with Visual C++) */
 
