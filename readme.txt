@@ -1,4 +1,4 @@
-This is zlib 1.3 with minizip contrib.
+This is zlib 1.3.1 with minizip contrib.
 
 Tracked here: https://github.com/Unity-Technologies/zlib on branch `unity-trunk-master`
 To upgrade:
