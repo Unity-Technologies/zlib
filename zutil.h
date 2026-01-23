@@ -143,7 +143,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  endif
 #endif
 
-#if defined(MACOS) || defined(TARGET_OS_MAC)
+#ifdef MACOS
 #  define OS_CODE  7
 #endif
 
@@ -163,7 +163,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  define OS_CODE 18
 #endif
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(TARGET_OS_MAC)
 #  define OS_CODE 19
 #endif
 
