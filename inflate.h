@@ -16,10 +16,6 @@
 #  define GUNZIP
 #endif
 
-#ifdef COPY //  UNITY-SPECIFIC: COPY is defined in gzguts.h and causes compilation issues with the enum value of the same name. We need to undef it.
-#undef COPY
-#endif
-
 /* Possible inflate modes between inflate() calls */
 typedef enum {
     HEAD = 16180,   /* i: waiting for magic header */
@@ -104,7 +100,7 @@ struct inflate_state {
     unsigned char FAR *window;  /* allocated sliding window, if needed */
         /* bit accumulator */
     unsigned long hold;         /* input bit accumulator */
-    unsigned bits;              /* number of bits in "in" */
+    unsigned bits;              /* number of bits in hold */
         /* for string and stored block copying */
     unsigned length;            /* literal or length of data to copy */
     unsigned offset;            /* distance back to copy string from */

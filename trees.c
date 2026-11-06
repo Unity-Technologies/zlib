@@ -1,5 +1,5 @@
 /* trees.c -- output deflated data using Huffman coding
- * Copyright (C) 1995-2024 Jean-loup Gailly
+ * Copyright (C) 1995-2026 Jean-loup Gailly
  * detect_data_type() function provided freely by Cosmin Truta, 2006
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
@@ -112,7 +112,7 @@ local int base_dist[D_CODES];
 
 #else
 #  include "trees.h"
-#endif /* GEN_TREES_H */
+#endif /* defined(GEN_TREES_H) || !defined(STDC) */
 
 struct static_tree_desc_s {
     const ct_data *static_tree;  /* static tree or NULL */
@@ -152,7 +152,7 @@ local TCONST static_tree_desc static_bl_desc =
  * IN assertion: 1 <= len <= 15
  */
 local unsigned bi_reverse(unsigned code, int len) {
-    register unsigned res = 0;
+    unsigned res = 0;
     do {
         res |= code & 1;
         code >>= 1, res <<= 1;
@@ -184,10 +184,11 @@ local void bi_windup(deflate_state *s) {
     } else if (s->bi_valid > 0) {
         put_byte(s, (Byte)s->bi_buf);
     }
+    s->bi_used = ((s->bi_valid - 1) & 7) + 1;
     s->bi_buf = 0;
     s->bi_valid = 0;
 #ifdef ZLIB_DEBUG
-    s->bits_sent = (s->bits_sent + 7) & ~7;
+    s->bits_sent = (s->bits_sent + 7) & ~(ulg)7;
 #endif
 }
 
@@ -215,7 +216,7 @@ local void gen_codes(ct_data *tree, int max_code, ushf *bl_count) {
     /* Check that the bit counts in bl_count are consistent. The last code
      * must be all ones.
      */
-    ZAssert(code + bl_count[MAX_BITS] - 1 == (1 << MAX_BITS) - 1,
+    Assert (code + bl_count[MAX_BITS] - 1 == (1 << MAX_BITS) - 1,
             "inconsistent bit counts");
     Tracev((stderr,"\ngen_codes: max_code %d ", max_code));
 
@@ -251,7 +252,7 @@ local void gen_trees_header(void);
 #ifdef ZLIB_DEBUG
 local void send_bits(deflate_state *s, int value, int length) {
     Tracevv((stderr," l %2d v %4x ", length, value));
-    ZAssert(length > 0 && length <= 15, "invalid length");
+    Assert(length > 0 && length <= 15, "invalid length");
     s->bits_sent += (ulg)length;
 
     /* If not enough room in bi_buf, use (valid) bits from bi_buf and
@@ -321,7 +322,7 @@ local void tr_static_init(void) {
             _length_code[length++] = (uch)code;
         }
     }
-    ZAssert(length == 256, "tr_static_init: length != 256");
+    Assert (length == 256, "tr_static_init: length != 256");
     /* Note that the length 255 (match length 258) can be represented
      * in two different ways: code 284 + 5 bits or code 285, so we
      * overwrite length_code[255] to use the best encoding:
@@ -336,7 +337,7 @@ local void tr_static_init(void) {
             _dist_code[dist++] = (uch)code;
         }
     }
-    ZAssert(dist == 256, "tr_static_init: dist != 256");
+    Assert (dist == 256, "tr_static_init: dist != 256");
     dist >>= 7; /* from now on, all distances are divided by 128 */
     for ( ; code < D_CODES; code++) {
         base_dist[code] = dist << 7;
@@ -344,7 +345,7 @@ local void tr_static_init(void) {
             _dist_code[256 + dist++] = (uch)code;
         }
     }
-    ZAssert(dist == 256, "tr_static_init: 256 + dist != 512");
+    Assert (dist == 256, "tr_static_init: 256 + dist != 512");
 
     /* Construct the codes of the static literal tree */
     for (bits = 0; bits <= MAX_BITS; bits++) bl_count[bits] = 0;
@@ -388,7 +389,7 @@ void gen_trees_header(void) {
     FILE *header = fopen("trees.h", "w");
     int i;
 
-    ZAssert(header != NULL, "Can't open trees.h");
+    Assert (header != NULL, "Can't open trees.h");
     fprintf(header,
             "/* header created automatically with -DGEN_TREES_H */\n\n");
 
@@ -466,6 +467,7 @@ void ZLIB_INTERNAL _tr_init(deflate_state *s) {
 
     s->bi_buf = 0;
     s->bi_valid = 0;
+    s->bi_used = 0;
 #ifdef ZLIB_DEBUG
     s->compressed_len = 0L;
     s->bits_sent = 0L;
@@ -724,7 +726,7 @@ local void scan_tree(deflate_state *s, ct_data *tree, int max_code) {
         if (++count < max_count && curlen == nextlen) {
             continue;
         } else if (count < min_count) {
-            s->bl_tree[curlen].Freq += count;
+            s->bl_tree[curlen].Freq += (ush)count;
         } else if (curlen != 0) {
             if (curlen != prevlen) s->bl_tree[curlen].Freq++;
             s->bl_tree[REP_3_6].Freq++;
@@ -771,7 +773,7 @@ local void send_tree(deflate_state *s, ct_data *tree, int max_code) {
             if (curlen != prevlen) {
                 send_code(s, curlen, s->bl_tree); count--;
             }
-            ZAssert(count >= 3 && count <= 6, " 3_6?");
+            Assert(count >= 3 && count <= 6, " 3_6?");
             send_code(s, REP_3_6, s->bl_tree); send_bits(s, count - 3, 2);
 
         } else if (count <= 10) {
@@ -817,7 +819,7 @@ local int build_bl_tree(deflate_state *s) {
     }
     /* Update opt_len to include the bit length tree and counts */
     s->opt_len += 3*((ulg)max_blindex + 1) + 5 + 5 + 4;
-    Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld",
+    Tracev((stderr, "\ndyn trees: dyn %lu, stat %lu",
             s->opt_len, s->static_len));
 
     return max_blindex;
@@ -832,8 +834,8 @@ local void send_all_trees(deflate_state *s, int lcodes, int dcodes,
                           int blcodes) {
     int rank;                    /* index in bl_order */
 
-    ZAssert(lcodes >= 257 && dcodes >= 1 && blcodes >= 4, "not enough codes");
-    ZAssert(lcodes <= L_CODES && dcodes <= D_CODES && blcodes <= BL_CODES,
+    Assert (lcodes >= 257 && dcodes >= 1 && blcodes >= 4, "not enough codes");
+    Assert (lcodes <= L_CODES && dcodes <= D_CODES && blcodes <= BL_CODES,
             "too many codes");
     Tracev((stderr, "\nbl counts: "));
     send_bits(s, lcodes - 257, 5);  /* not +255 as stated in appnote.txt */
@@ -843,13 +845,13 @@ local void send_all_trees(deflate_state *s, int lcodes, int dcodes,
         Tracev((stderr, "\nbl code %2d ", bl_order[rank]));
         send_bits(s, s->bl_tree[bl_order[rank]].Len, 3);
     }
-    Tracev((stderr, "\nbl tree: sent %ld", s->bits_sent));
+    Tracev((stderr, "\nbl tree: sent %lu", s->bits_sent));
 
     send_tree(s, (ct_data *)s->dyn_ltree, lcodes - 1);  /* literal tree */
-    Tracev((stderr, "\nlit tree: sent %ld", s->bits_sent));
+    Tracev((stderr, "\nlit tree: sent %lu", s->bits_sent));
 
     send_tree(s, (ct_data *)s->dyn_dtree, dcodes - 1);  /* distance tree */
-    Tracev((stderr, "\ndist tree: sent %ld", s->bits_sent));
+    Tracev((stderr, "\ndist tree: sent %lu", s->bits_sent));
 }
 
 /* ===========================================================================
@@ -926,21 +928,21 @@ local void compress_block(deflate_state *s, const ct_data *ltree,
             }
             dist--; /* dist is now the match distance - 1 */
             code = d_code(dist);
-            ZAssert(code < D_CODES, "bad d_code");
+            Assert (code < D_CODES, "bad d_code");
 
             send_code(s, code, dtree);       /* send the distance code */
             extra = extra_dbits[code];
             if (extra != 0) {
                 dist -= (unsigned)base_dist[code];
-                send_bits(s, dist, extra);   /* send the extra distance bits */
+                send_bits(s, (int)dist, extra); /* send the extra bits */
             }
         } /* literal or match pair ? */
 
         /* Check for no overlay of pending_buf on needed symbols */
 #ifdef LIT_MEM
-        ZAssert(s->pending < 2 * (s->lit_bufsize + sx), "pendingBuf overflow");
+        Assert(s->pending < 2 * (s->lit_bufsize + sx), "pendingBuf overflow");
 #else
-        ZAssert(s->pending < s->lit_bufsize + sx, "pendingBuf overflow");
+        Assert(s->pending < s->lit_bufsize + sx, "pendingBuf overflow");
 #endif
 
     } while (sx < s->sym_next);
@@ -1006,11 +1008,11 @@ void ZLIB_INTERNAL _tr_flush_block(deflate_state *s, charf *buf,
 
         /* Construct the literal and distance trees */
         build_tree(s, (tree_desc *)(&(s->l_desc)));
-        Tracev((stderr, "\nlit data: dyn %ld, stat %ld", s->opt_len,
+        Tracev((stderr, "\nlit data: dyn %lu, stat %lu", s->opt_len,
                 s->static_len));
 
         build_tree(s, (tree_desc *)(&(s->d_desc)));
-        Tracev((stderr, "\ndist data: dyn %ld, stat %ld", s->opt_len,
+        Tracev((stderr, "\ndist data: dyn %lu, stat %lu", s->opt_len,
                 s->static_len));
         /* At this point, opt_len and static_len are the total bit lengths of
          * the compressed block data, excluding the tree representations.
@@ -1035,7 +1037,7 @@ void ZLIB_INTERNAL _tr_flush_block(deflate_state *s, charf *buf,
             opt_lenb = static_lenb;
 
     } else {
-        ZAssert(buf != (char*)0, "lost buf");
+        Assert(buf != (char*)0, "lost buf");
         opt_lenb = static_lenb = stored_len + 5; /* force a stored block */
     }
 
@@ -1070,7 +1072,7 @@ void ZLIB_INTERNAL _tr_flush_block(deflate_state *s, charf *buf,
         s->compressed_len += 3 + s->opt_len;
 #endif
     }
-    ZAssert(s->compressed_len == s->bits_sent, "bad compressed size");
+    Assert (s->compressed_len == s->bits_sent, "bad compressed size");
     /* The above check is made mod 2^32, for files larger than 512 MB
      * and uLong implemented on 32 bits.
      */
@@ -1083,7 +1085,7 @@ void ZLIB_INTERNAL _tr_flush_block(deflate_state *s, charf *buf,
 #endif
     }
     Tracev((stderr,"\ncomprlen %lu(%lu) ", s->compressed_len >> 3,
-           s->compressed_len - 7*last));
+           s->compressed_len - 7*(ulg)last));
 }
 
 /* ===========================================================================
@@ -1106,7 +1108,7 @@ int ZLIB_INTERNAL _tr_tally(deflate_state *s, unsigned dist, unsigned lc) {
         s->matches++;
         /* Here, lc is the match length - MIN_MATCH */
         dist--;             /* dist = match distance - 1 */
-        ZAssert((ush)dist < (ush)MAX_DIST(s) &&
+        Assert((ush)dist < (ush)MAX_DIST(s) &&
                (ush)lc <= (ush)(MAX_MATCH-MIN_MATCH) &&
                (ush)d_code(dist) < (ush)D_CODES,  "_tr_tally: bad match");
 
