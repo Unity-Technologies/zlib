@@ -5,6 +5,10 @@
 
 #include "gzguts.h"
 
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
+
 /* Use read() to load a buffer -- return -1 on error, otherwise 0.  Read from
    state->fd, and update state->eof, state->err, and state->msg as appropriate.
    This function needs to loop on read(), since read() is not guaranteed to
@@ -466,7 +470,7 @@ z_size_t ZEXPORT gzfread(voidp buf, z_size_t size, z_size_t nitems,
 
 /* -- see zlib.h -- */
 #ifdef Z_PREFIX_SET
-#  undef z_gzgetc
+#  undef unity_z_gzgetc
 #else
 #  undef gzgetc
 #endif

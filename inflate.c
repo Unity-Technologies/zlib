@@ -485,6 +485,7 @@ int ZEXPORT inflate(z_streamp strm, int flush) {
     code last;                  /* parent table entry */
     unsigned len;               /* length to copy for repeats, bits to drop */
     int ret;                    /* return code */
+    int ignore_crc;
 #ifdef GUNZIP
     unsigned char hbuf[4];      /* buffer for gzip header crc calculation */
 #endif
@@ -494,6 +495,9 @@ int ZEXPORT inflate(z_streamp strm, int flush) {
     if (inflateStateCheck(strm) || strm->next_out == Z_NULL ||
         (strm->next_in == Z_NULL && strm->avail_in != 0))
         return Z_STREAM_ERROR;
+
+    ignore_crc = (flush & Z_UNITY_INFLATE_IGNORE_CRC) != 0;
+    flush = flush & ~Z_UNITY_INFLATE_IGNORE_CRC;
 
     state = (struct inflate_state FAR *)strm->state;
     if (state->mode == TYPE) state->mode = TYPEDO;      /* skip check */
@@ -1075,11 +1079,11 @@ int ZEXPORT inflate(z_streamp strm, int flush) {
                 out -= left;
                 strm->total_out += out;
                 state->total += out;
-                if ((state->wrap & 4) && out)
+                if (ignore_crc == 0 && (state->wrap & 4) && out)
                     strm->adler = state->check =
                         UPDATE_CHECK(state->check, put - out, out);
                 out = left;
-                if ((state->wrap & 4) && (
+                if (ignore_crc == 0 && (state->wrap & 4) && (
 #ifdef GUNZIP
                      state->flags ? hold :
 #endif
@@ -1141,7 +1145,7 @@ int ZEXPORT inflate(z_streamp strm, int flush) {
     strm->total_in += in;
     strm->total_out += out;
     state->total += out;
-    if ((state->wrap & 4) && out)
+    if (ignore_crc == 0 && (state->wrap & 4) && out)
         strm->adler = state->check =
             UPDATE_CHECK(state->check, strm->next_out - out, out);
     strm->data_type = (int)state->bits + (state->last ? 64 : 0) +

@@ -254,7 +254,7 @@ local void fill_window(deflate_state *s) {
     unsigned more;    /* Amount of free space at the end of the window. */
     uInt wsize = s->w_size;
 
-    Assert(s->lookahead < MIN_LOOKAHEAD, "already enough lookahead");
+    ZAssert(s->lookahead < MIN_LOOKAHEAD, "already enough lookahead");
 
     do {
         more = (unsigned)(s->window_size -(ulg)s->lookahead -(ulg)s->strstart);
@@ -306,7 +306,7 @@ local void fill_window(deflate_state *s) {
          * Otherwise, window_size == 2*WSIZE so more >= 2.
          * If there was sliding, more >= WSIZE. So in all cases, more >= 2.
          */
-        Assert(more >= 2, "more < 2");
+        ZAssert(more >= 2, "more < 2");
 
         n = read_buf(s->strm, s->window + s->strstart + s->lookahead, more);
         s->lookahead += n;
@@ -371,7 +371,7 @@ local void fill_window(deflate_state *s) {
         }
     }
 
-    Assert((ulg)s->strstart <= s->window_size - MIN_LOOKAHEAD,
+    ZAssert((ulg)s->strstart <= s->window_size - MIN_LOOKAHEAD,
            "not enough room for search");
 }
 
@@ -1417,7 +1417,7 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
     /* The code is optimized for HASH_BITS >= 8 and MAX_MATCH-2 multiple of 16.
      * It is easy to get rid of this optimization if necessary.
      */
-    Assert(s->hash_bits >= 8 && MAX_MATCH == 258, "Code too clever");
+    ZAssert(s->hash_bits >= 8 && MAX_MATCH == 258, "Code too clever");
 
     /* Do not waste too much time if we already have a good match: */
     if (s->prev_length >= s->good_match) {
@@ -1428,11 +1428,11 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
      */
     if ((uInt)nice_match > s->lookahead) nice_match = (int)s->lookahead;
 
-    Assert((ulg)s->strstart <= s->window_size - MIN_LOOKAHEAD,
+    ZAssert((ulg)s->strstart <= s->window_size - MIN_LOOKAHEAD,
            "need lookahead");
 
     do {
-        Assert(cur_match < s->strstart, "no future");
+        ZAssert(cur_match < s->strstart, "no future");
         match = s->window + cur_match;
 
         /* Skip to next match if the match length cannot increase
@@ -1459,7 +1459,7 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
          * necessary to put more guard bytes at the end of the window, or
          * to check more often for insufficient lookahead.
          */
-        Assert(scan[2] == match[2], "scan[2]?");
+        ZAssert(scan[2] == match[2], "scan[2]?");
         scan++, match++;
         do {
         } while (*(ushf*)(scan += 2) == *(ushf*)(match += 2) &&
@@ -1470,7 +1470,7 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
         /* The funny "do {}" generates better code on most compilers */
 
         /* Here, scan <= window + strstart + 257 */
-        Assert(scan <= s->window + (unsigned)(s->window_size - 1),
+        ZAssert(scan <= s->window + (unsigned)(s->window_size - 1),
                "wild scan");
         if (*scan == *match) scan++;
 
@@ -1491,7 +1491,7 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
          * the hash keys are equal and that HASH_BITS >= 8.
          */
         scan += 2, match++;
-        Assert(*scan == *match, "match[2]?");
+        ZAssert(*scan == *match, "match[2]?");
 
         /* We check for insufficient lookahead only every 8th comparison;
          * the 256th check will be made at strstart + 258.
@@ -1503,7 +1503,7 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
                  *++scan == *++match && *++scan == *++match &&
                  scan < strend);
 
-        Assert(scan <= s->window + (unsigned)(s->window_size - 1),
+        ZAssert(scan <= s->window + (unsigned)(s->window_size - 1),
                "wild scan");
 
         len = MAX_MATCH - (int)(strend - scan);
@@ -1543,12 +1543,12 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
     /* The code is optimized for HASH_BITS >= 8 and MAX_MATCH-2 multiple of 16.
      * It is easy to get rid of this optimization if necessary.
      */
-    Assert(s->hash_bits >= 8 && MAX_MATCH == 258, "Code too clever");
+    ZAssert(s->hash_bits >= 8 && MAX_MATCH == 258, "Code too clever");
 
-    Assert((ulg)s->strstart <= s->window_size - MIN_LOOKAHEAD,
+    ZAssert((ulg)s->strstart <= s->window_size - MIN_LOOKAHEAD,
            "need lookahead");
 
-    Assert(cur_match < s->strstart, "no future");
+    ZAssert(cur_match < s->strstart, "no future");
 
     match = s->window + cur_match;
 
@@ -1563,7 +1563,7 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
      * the hash keys are equal and that HASH_BITS >= 8.
      */
     scan += 2, match += 2;
-    Assert(*scan == *match, "match[2]?");
+    ZAssert(*scan == *match, "match[2]?");
 
     /* We check for insufficient lookahead only every 8th comparison;
      * the 256th check will be made at strstart + 258.
@@ -1575,7 +1575,7 @@ local uInt longest_match(deflate_state *s, IPos cur_match) {
              *++scan == *++match && *++scan == *++match &&
              scan < strend);
 
-    Assert(scan <= s->window + (unsigned)(s->window_size - 1), "wild scan");
+    ZAssert(scan <= s->window + (unsigned)(s->window_size - 1), "wild scan");
 
     len = MAX_MATCH - (int)(strend - scan);
 
@@ -2059,7 +2059,7 @@ local block_state deflate_slow(deflate_state *s, int flush) {
             s->lookahead--;
         }
     }
-    Assert (flush != Z_NO_FLUSH, "no flush?");
+    ZAssert (flush != Z_NO_FLUSH, "no flush?");
     if (s->match_available) {
         Tracevv((stderr,"%c", s->window[s->strstart - 1]));
         _tr_tally_lit(s, s->window[s->strstart - 1], bflush);
@@ -2116,7 +2116,7 @@ local block_state deflate_rle(deflate_state *s, int flush) {
                 if (s->match_length > s->lookahead)
                     s->match_length = s->lookahead;
             }
-            Assert(scan <= s->window + (uInt)(s->window_size - 1),
+            ZAssert(scan <= s->window + (uInt)(s->window_size - 1),
                    "wild scan");
         }
 

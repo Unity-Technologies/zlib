@@ -16,6 +16,10 @@
 #  define GUNZIP
 #endif
 
+#ifdef COPY //  UNITY-SPECIFIC: COPY is defined in gzguts.h and causes compilation issues with the enum value of the same name.
+#undef COPY
+#endif
+
 /* Possible inflate modes between inflate() calls */
 typedef enum {
     HEAD = 16180,   /* i: waiting for magic header */

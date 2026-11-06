@@ -176,6 +176,7 @@ typedef gz_header FAR *gz_headerp;
 #define Z_FINISH        4
 #define Z_BLOCK         5
 #define Z_TREES         6
+#define Z_UNITY_INFLATE_IGNORE_CRC 0x1000 /* disables CRC checking in inflate(). OR it with the flush parameter */
 /* Allowed flush values; see deflate() and inflate() below for details */
 
 #define Z_OK            0
@@ -519,6 +520,11 @@ ZEXTERN int ZEXPORT inflate(z_streamp strm, int flush);
   continue decompressing.  If Z_DATA_ERROR is returned, the application may
   then call inflateSync() to look for a good compression block if a partial
   recovery of the data is to be attempted.
+
+  UNITY-SPECIFIC:
+
+  If Z_UNITY_INFLATE_IGNORE_CRC bit is set in the flush parameter, then no CRC
+  checking is done.
 */
 
 
@@ -1915,17 +1921,17 @@ ZEXTERN int ZEXPORT inflateBackInit_(z_streamp strm, int windowBits,
                                      const char *version,
                                      int stream_size);
 #ifdef Z_PREFIX_SET
-#  define z_deflateInit(strm, level) \
+#  define unity_z_deflateInit(strm, level) \
           deflateInit_((strm), (level), ZLIB_VERSION, (int)sizeof(z_stream))
-#  define z_inflateInit(strm) \
+#  define unity_z_inflateInit(strm) \
           inflateInit_((strm), ZLIB_VERSION, (int)sizeof(z_stream))
-#  define z_deflateInit2(strm, level, method, windowBits, memLevel, strategy) \
+#  define unity_z_deflateInit2(strm, level, method, windowBits, memLevel, strategy) \
           deflateInit2_((strm),(level),(method),(windowBits),(memLevel),\
                         (strategy), ZLIB_VERSION, (int)sizeof(z_stream))
-#  define z_inflateInit2(strm, windowBits) \
+#  define unity_z_inflateInit2(strm, windowBits) \
           inflateInit2_((strm), (windowBits), ZLIB_VERSION, \
                         (int)sizeof(z_stream))
-#  define z_inflateBackInit(strm, windowBits, window) \
+#  define unity_z_inflateBackInit(strm, windowBits, window) \
           inflateBackInit_((strm), (windowBits), (window), \
                            ZLIB_VERSION, (int)sizeof(z_stream))
 #else
